@@ -26,7 +26,7 @@ analytics.
 ### 1. Clone and Install Dependencies
 
 ``` bash
-git clone https://github.com/your-username/friend-chatbot.git
+git clone https://github.com/shekharsharma100001/Iota-chat-bot.git
 cd friend-chatbot
 pip install -r requirements.txt
 ```

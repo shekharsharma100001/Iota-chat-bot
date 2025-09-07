@@ -2,7 +2,7 @@ import json
 import os
 from pinecone import Pinecone
 from embeddings_provider import get_embedder
-
+from logging_config import logger
 
 
 # Pinecone setup - Get from environment variables
@@ -75,11 +75,13 @@ def retrieve_topk(query_text, index, k=5, min_score=None):
     if index is None:
         # Return mock data if Pinecone is not available
         print("⚠️ Pinecone not available - returning mock data")
+        logger.info("⚠️ Pinecone not available - returning mock data")
         return [
             RetrievedDoc("mock-1", 0.85, "print ho gaya?", "Haan, ho gaya. Spiral binding hi karwani hai na? ✨"),
             RetrievedDoc("mock-2", 0.80, "paise kitne hue?", "Don't change the topic haan 😏  kal ice-cream done?"),
             RetrievedDoc("mock-3", 0.75, "mood down hai", "Same scene yaar… par try karte rehna, ho jayega 🥹")
         ]
+    
     
     try:
         query_embedding = embed_query(query_text)
@@ -97,9 +99,17 @@ def retrieve_topk(query_text, index, k=5, min_score=None):
                     )
                 )
         print(f"✅ Retrieved {len(retrieved_docs)} documents from Pinecone")
+        logger.info(f"Retrieved {len(retrieved_docs)} documents from Pinecone (top_k={k}).")
+        for i, doc in enumerate(retrieved_docs, 1):
+            logger.info(
+                f"Match {i}: context='{doc.context[:80]}...' response='{doc.response[:80]}...' score={doc.score:.4f}"
+            )
+
+
         return retrieved_docs
     except Exception as e:
         print(f"⚠️ Pinecone query failed: {e} - returning mock data")
+        logger.warning(f"⚠️ Pinecone query failed: {e} - returning mock data")
         return [
             RetrievedDoc("mock-1", 0.85, "print ho gaya?", "Haan, ho gaya. Spiral binding hi karwani hai na? ✨"),
             RetrievedDoc("mock-2", 0.80, "paise kitne hue?", "Don't change the topic haan 😏  kal ice-cream done?")

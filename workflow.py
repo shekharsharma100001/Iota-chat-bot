@@ -200,6 +200,7 @@ def respond_like_iota(user_turn: str,
     user_turn = (user_turn or "").strip()
     safe_history = history or []
     exemplars = _normalize_retrieved(retrieved_topk)
+    print(exemplars)
 
     # Tiny context hash for the cache
     context_hash = _mini_context_signature(safe_history, exemplars)

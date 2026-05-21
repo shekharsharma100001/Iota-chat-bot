@@ -85,6 +85,13 @@ def authorize_google():
     
     if not user:
         # Create a new user without a password hash
+        original_username = username
+        counter = 1
+        # Ensure the username is unique in the database
+        while users.find_one({"username": username}):
+            username = f"{original_username}_{counter}"
+            counter += 1
+            
         user_doc = {
             "username": username,
             "email": email,
@@ -95,6 +102,7 @@ def authorize_google():
         user_id = str(result.inserted_id)
     else:
         user_id = str(user['_id'])
+        username = user.get('username', username) # Use the existing username
         
     session['user_id'] = user_id
     session['username'] = username

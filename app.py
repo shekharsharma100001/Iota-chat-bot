@@ -1,4 +1,5 @@
 from flask import Flask, redirect, url_for, session, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config import config_by_name
 
 # Import core initializations
@@ -14,6 +15,7 @@ from blueprints.chat import chat_bp
 
 def create_app(config_name='default'):
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     app.config.from_object(config_by_name[config_name])
 
     # Initialize Core Services

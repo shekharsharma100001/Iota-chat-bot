@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iota - Live AI Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        sidebarBg: '#1e293b',
+                        chatBg: '#020617',
+                        msgUser: '#2563eb',
+                        msgAI: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darkBg text-white h-screen flex overflow-hidden">
+
+    <!-- Sidebar / Split Layout -->
+    <aside class="w-80 bg-sidebarBg border-r border-gray-800 flex flex-col h-full shadow-2xl z-10">
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-sidebarBg">
+            <h1 class="text-xl font-bold text-gray-100">Chats</h1>
+            <button id="new-chat-btn" class="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition" title="New Chat">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="p-3">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" class="w-full bg-gray-800 text-gray-200 text-sm rounded-lg pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-gray-600" placeholder="Search or start a new chat">
+            </div>
+        </div>
+
+        <!-- Chat List -->
+        <div class="flex-1 overflow-y-auto" id="chat-list">
+            <div id="chat-list-empty" class="hidden p-6 text-center mt-10">
+                <div class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <h3 class="text-gray-400 font-medium mb-1">No Personas Yet</h3>
+                <p class="text-xs text-gray-600">Click the + icon to create your first AI clone.</p>
+            </div>
+            <!-- Dynamic clones populated here -->
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-gray-800 flex justify-between items-center bg-gray-900/50">
+            <button onclick="logout()" class="text-sm text-gray-400 hover:text-white transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                Logout
+            </button>
+            {% if is_admin %}
+            <a href="/admin/" class="text-sm text-gray-400 hover:text-white transition">Admin</a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Main Window Area -->
+    <main class="flex-1 flex flex-col bg-chatBg relative h-full">
+        
+        <!-- View 1: Active Chat Feed -->
+        <div id="active-chat-view" class="flex-1 flex flex-col h-full w-full">
+            <!-- Active Chat Header -->
+            <div class="px-6 py-4 bg-chatBg border-b border-gray-800 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold" id="active-chat-avatar">E</div>
+                    <div>
+                        <h2 class="font-bold text-gray-100" id="active-chat-name">Iota AI</h2>
+                        <p class="text-xs text-green-400 flex items-center gap-1">
+                            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+                <div class="flex justify-start">
+                    <div class="max-w-[70%] bg-msgAI text-gray-100 rounded-2xl rounded-tl-sm px-5 py-3 shadow-md border border-gray-700">
+                        <p class="text-[15px] leading-relaxed">Hello! I am your Iota clone. Upload some logs or create a new replica to train me.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 bg-sidebarBg border-t border-gray-800">
+                <form id="chat-form" class="max-w-4xl mx-auto relative flex items-end gap-3">
+                    <textarea id="chat-input" rows="1" placeholder="Type a message..." class="w-full bg-gray-800/80 border border-gray-700 text-white rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition" oninput="this.style.height = '';this.style.height = Math.min(this.scrollHeight, 150) + 'px'"></textarea>
+                    <button type="submit" class="p-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white transition shadow-lg shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Hub View: Choose Creation Method -->
+        <div id="new-chat-hub" class="hidden flex-1 flex flex-col items-center justify-center p-8 h-full bg-gradient-to-br from-chatBg to-sidebarBg absolute inset-0 z-20">
+            <button onclick="showActiveChat()" class="absolute top-6 left-6 text-gray-400 hover:text-white flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Back to Chat
+            </button>
+            
+            <h2 class="text-3xl font-bold text-white mb-2">Create New Experience</h2>
+            <p class="text-gray-400 mb-10 text-center max-w-md">How would you like to train your new AI clone?</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+                <!-- Method 1: Upload Log -->
+                <div onclick="showUploadWizard()" class="bg-gray-800/60 p-8 rounded-2xl border border-gray-700 hover:border-blue-500 transition shadow-xl group cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                        <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-100 mb-2">Clone from Chat Log</h3>
+                    <p class="text-sm text-gray-400">Upload a WhatsApp .txt export. The AI will perfectly mimic the persona based on actual past conversations.</p>
+                </div>
+
+                <!-- Method 2: Manual Persona -->
+                <div onclick="showManualWizard()" class="bg-gray-800/60 p-8 rounded-2xl border border-gray-700 hover:border-purple-500 transition shadow-xl group cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-purple-600/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                        <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-100 mb-2">Design Custom Persona</h3>
+                    <p class="text-sm text-gray-400">Manually select personality traits, relationship types, and expertise using our advanced creation wizard.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Chat Log Wizard -->
+        <div id="upload-wizard-view" class="hidden flex-1 flex flex-col items-center justify-start p-8 pt-16 h-full bg-gradient-to-br from-chatBg to-sidebarBg absolute inset-0 z-30 overflow-y-auto">
+            <button onclick="showNewChatHub()" class="sticky top-0 self-start text-gray-400 hover:text-white flex items-center gap-2 mb-6">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Back
+            </button>
+            <h2 class="text-3xl font-bold text-white mb-8">Clone from Log</h2>
+            <div class="w-full max-w-2xl bg-gray-800/60 p-8 rounded-2xl border border-gray-700 shadow-xl relative mb-8">
+                <!-- Step 1: Upload -->
+                <div id="step-1-upload">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold" id="active-chat-avatar">E</div>
+                        <div>
+                            <h2 class="font-bold text-gray-100" id="active-chat-name">Iota AI</h2>
+                            <p class="text-xs text-green-400 flex items-center gap-1">
+                                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online
+                            </p>
+                        </div>
+                    </div>        
+                    <input type="file" id="log-file" accept=".txt" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 transition cursor-pointer mb-4 mt-6">
+                    <button id="upload-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium transition shadow">Analyze File</button>
+                    <div id="upload-status" class="text-xs mt-3 text-center text-blue-400 hidden"></div>
+                </div>
+
+                <!-- Step 2: Configure Replica (Hidden initially) -->
+                <div id="step-2-configure" class="hidden mt-8 pt-8 border-t border-gray-700">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-10 h-10 bg-purple-600/20 rounded-xl flex items-center justify-center text-purple-400 font-bold">2</div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-100">Configure Replica</h3>
+                            <p class="text-sm text-gray-400">Who do you want this AI to perfectly mimic?</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Target Persona</label>
+                            <select id="target-persona-select" class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition appearance-none">
+                                <option value="" disabled selected>Select the person to clone...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Replica Name</label>
+                            <input type="text" id="replica-name" placeholder="e.g. Sarah's Virtual Clone" class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition">
+                        </div>
+                        <button id="create-replica-btn" class="w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-white font-medium transition shadow-lg">Extract Knowledge & Create</button>
+                        <div id="replica-status" class="text-xs mt-3 text-center text-purple-400 hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Persona 7-Step Wizard -->
+        <div id="manual-wizard-view" class="hidden flex-1 flex flex-col items-center justify-start p-8 pt-20 h-full bg-gradient-to-br from-chatBg to-sidebarBg absolute inset-0 z-30 overflow-y-auto">
+            <button onclick="showNewChatHub()" class="absolute top-6 left-6 text-gray-400 hover:text-white flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Cancel Creation
+            </button>
+            
+            <!-- Progress Bar -->
+            <div class="w-full max-w-3xl mb-8">
+                <div class="flex justify-between mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    <span>Identity</span><span>Relationship</span><span>Personality</span><span>Comms</span><span>Expertise</span><span>Examples</span><span>Review</span>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-2">
+                    <div id="wizard-progress" class="bg-purple-600 h-2 rounded-full transition-all duration-500 ease-out" style="width: 14.28%"></div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-3xl bg-gray-800/60 p-8 rounded-3xl border border-gray-700 shadow-2xl relative flex flex-col" style="min-height: 520px;">
+                
+                <!-- Step 1: Identity -->
+                <div id="m-step-1" class="wizard-step flex-1 transition-all duration-500">
+                    <h2 class="text-2xl font-bold text-white mb-1">Identity</h2>
+                    <p class="text-sm text-gray-400 mb-6">Let's start with the basics. Who is this AI?</p>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-300 mb-2">Bot Name</label>
+                            <input type="text" id="m-name" placeholder="Enter chatbot name" class="w-full bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-300 mb-2">Gender</label>
+                            <div class="grid grid-cols-3 gap-4" id="m-gender-group">
+                                <button type="button" class="m-select-btn bg-gray-900 border border-gray-700 rounded-xl py-3 text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Male">Male</button>
+                                <button type="button" class="m-select-btn bg-gray-900 border border-gray-700 rounded-xl py-3 text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Female">Female</button>
+                                <button type="button" class="m-select-btn bg-gray-900 border border-gray-700 rounded-xl py-3 text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Neutral">Neutral</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-300 mb-2">Language</label>
+                            <div class="grid grid-cols-3 gap-4" id="m-lang-group">
+                                <button type="button" class="m-select-btn bg-gray-900 border border-gray-700 rounded-xl py-3 text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="English">English</button>
+                                <button type="button" class="m-select-btn bg-gray-900 border border-gray-700 rounded-xl py-3 text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Hindi">Hindi</button>
+                                <button type="button" class="m-select-btn bg-gray-900 border border-gray-700 rounded-xl py-3 text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Hinglish">Hinglish</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Relationship -->
+                <div id="m-step-2" class="wizard-step hidden flex-1 transition-all duration-300 opacity-0 pointer-events-none overflow-y-auto">
+                    <h2 class="text-2xl font-bold text-white mb-1">Relationship</h2>
+                    <p class="text-sm text-gray-400 mb-6">How should your AI interact with you?</p>
+                    <div class="grid grid-cols-2 gap-4" id="m-rel-group">
+                        <button type="button" class="m-select-btn flex flex-col items-center p-4 bg-gray-900 border border-gray-700 rounded-2xl hover:border-purple-500 transition" data-value="Friend">
+                            <span class="text-2xl mb-2">🤝</span><span class="font-bold text-gray-200">Friend</span><span class="text-xs text-gray-500 mt-1">Casual and supportive</span>
+                        </button>
+                        <button type="button" class="m-select-btn flex flex-col items-center p-4 bg-gray-900 border border-gray-700 rounded-2xl hover:border-purple-500 transition" data-value="Mentor">
+                            <span class="text-2xl mb-2">🦉</span><span class="font-bold text-gray-200">Mentor</span><span class="text-xs text-gray-500 mt-1">Guides and teaches</span>
+                        </button>
+                        <button type="button" class="m-select-btn flex flex-col items-center p-4 bg-gray-900 border border-gray-700 rounded-2xl hover:border-purple-500 transition" data-value="Assistant">
+                            <span class="text-2xl mb-2">💼</span><span class="font-bold text-gray-200">Assistant</span><span class="text-xs text-gray-500 mt-1">Task-focused & smart</span>
+                        </button>
+                        <button type="button" class="m-select-btn flex flex-col items-center p-4 bg-gray-900 border border-gray-700 rounded-2xl hover:border-purple-500 transition" data-value="Romantic Partner">
+                            <span class="text-2xl mb-2">❤️</span><span class="font-bold text-gray-200">Romantic Partner</span><span class="text-xs text-gray-500 mt-1">Affectionate & close</span>
+                        </button>
+                        <button type="button" class="m-select-btn flex flex-col items-center p-4 bg-gray-900 border border-gray-700 rounded-2xl hover:border-purple-500 transition" data-value="Study Buddy">
+                            <span class="text-2xl mb-2">📚</span><span class="font-bold text-gray-200">Study Buddy</span><span class="text-xs text-gray-500 mt-1">Helps you learn</span>
+                        </button>
+                        <button type="button" class="m-select-btn flex flex-col items-center p-4 bg-gray-900 border border-gray-700 rounded-2xl hover:border-purple-500 transition" data-value="Coach">
+                            <span class="text-2xl mb-2">🏆</span><span class="font-bold text-gray-200">Coach</span><span class="text-xs text-gray-500 mt-1">Motivates you</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Personality -->
+                <div id="m-step-3" class="wizard-step hidden flex-1 transition-all duration-300 opacity-0 pointer-events-none overflow-y-auto">
+                    <h2 class="text-2xl font-bold text-white mb-1">Personality</h2>
+                    <p class="text-sm text-gray-400 mb-2">Choose personality traits.</p>
+                    <p class="text-xs text-purple-400 mb-6 font-semibold">Select exactly 3 traits (<span id="trait-count">0</span>/3)</p>
+                    <div class="flex flex-wrap gap-3" id="m-traits-group">
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Friendly">Friendly</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Funny">Funny</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Caring">Caring</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Intelligent">Intelligent</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Motivational">Motivational</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Calm">Calm</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Playful">Playful</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Professional">Professional</button>
+                        <button type="button" class="m-multi-btn px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-gray-400 hover:text-white hover:border-purple-500 transition" data-value="Romantic">Romantic</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Communication -->
+                <div id="m-step-4" class="wizard-step hidden flex-1 transition-all duration-300 opacity-0 pointer-events-none overflow-y-auto">
+                    <h2 class="text-2xl font-bold text-white mb-1">Communication</h2>
+                    <p class="text-sm text-gray-400 mb-6">Fine-tune how the AI constructs its messages.</p>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-300 mb-2">Tone</label>
+                            <div class="flex bg-gray-900 rounded-xl p-1 border border-gray-700" id="m-tone-group">
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Casual">Casual</button>
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Balanced">Balanced</button>
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Formal">Formal</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-300 mb-2">Response Length</label>
+                            <div class="flex bg-gray-900 rounded-xl p-1 border border-gray-700" id="m-len-group">
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Short">Short</button>
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Medium">Medium</button>
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Detailed">Detailed</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-300 mb-2">Emoji Usage</label>
+                            <div class="flex bg-gray-900 rounded-xl p-1 border border-gray-700" id="m-emoji-group">
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="None">None</button>
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Sometimes">Sometimes</button>
+                                <button type="button" class="m-seg-btn flex-1 py-2 text-sm text-gray-400 rounded-lg transition" data-value="Frequently">Frequently</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Expertise -->
+                <div id="m-step-5" class="wizard-step hidden flex-1 transition-all duration-300 opacity-0 pointer-events-none overflow-y-auto">
+                    <h2 class="text-2xl font-bold text-white mb-1">Expertise & Knowledge</h2>
+                    <p class="text-sm text-gray-400 mb-2">What subjects is this AI highly knowledgeable in?</p>
+                    <p class="text-xs text-purple-400 mb-6 font-semibold">Select up to 5 topics (<span id="expert-count">0</span>/5)</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="m-expert-group">
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Programming">Programming</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="AI/ML">AI/ML</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Fitness">Fitness</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Career">Career</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Relationships">Relationships</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Productivity">Productivity</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Gaming">Gaming</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Movies">Movies</button>
+                        <button type="button" class="m-multi-btn-expert px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm text-center" data-value="Finance">Finance</button>
+                    </div>
+                </div>
+
+                <!-- Step 6: Examples -->
+                <div id="m-step-6" class="wizard-step hidden flex-1 transition-all duration-300 opacity-0 pointer-events-none flex-col overflow-y-auto">
+                    <h2 class="text-2xl font-bold text-white mb-1">Teach Your AI</h2>
+                    <p class="text-sm text-gray-400 mb-4">Add a few example conversations to shape its personality.</p>
+                    
+                    <div id="m-examples-container" class="space-y-4 overflow-y-auto flex-1 pr-2 max-h-[300px]">
+                        <!-- Example 1 (Pre-filled) -->
+                        <div class="example-pair bg-gray-900/50 p-4 rounded-xl border border-gray-700 relative group">
+                            <button type="button" class="delete-example-btn absolute top-2 right-2 text-gray-500 hover:text-red-400 hidden group-hover:block"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">User Message</label>
+                            <textarea class="ex-user w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-purple-500 resize-none" rows="1" placeholder="e.g. I had a bad day..."></textarea>
+                            <label class="block text-xs font-semibold text-gray-500 mt-2 mb-1">AI Reply</label>
+                            <textarea class="ex-ai w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-purple-500 resize-none" rows="2" placeholder="How should the AI respond?"></textarea>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="add-example-btn" class="mt-4 py-2 border border-dashed border-gray-600 rounded-xl text-gray-400 hover:text-white hover:border-purple-500 transition text-sm font-medium flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Add Example
+                    </button>
+                </div>
+
+                <!-- Step 7: Review -->
+                <div id="m-step-7" class="wizard-step hidden flex-1 transition-all duration-300 opacity-0 pointer-events-none overflow-y-auto">
+                    <h2 class="text-2xl font-bold text-white mb-1">Review & Create</h2>
+                    <p class="text-sm text-gray-400 mb-6">Verify your custom persona blueprint.</p>
+                    
+                    <div class="bg-gray-900 rounded-2xl border border-gray-700 p-6 space-y-4 shadow-inner">
+                        <div class="flex justify-between border-b border-gray-800 pb-2">
+                            <span class="text-gray-500 text-sm">Identity</span>
+                            <span class="text-white font-medium" id="rev-identity">Name (Gender, Lang)</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-800 pb-2">
+                            <span class="text-gray-500 text-sm">Relationship</span>
+                            <span class="text-purple-400 font-medium" id="rev-rel">Friend</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-800 pb-2">
+                            <span class="text-gray-500 text-sm">Traits</span>
+                            <span class="text-white font-medium text-right" id="rev-traits">Funny, Caring, Smart</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-800 pb-2">
+                            <span class="text-gray-500 text-sm">Comms</span>
+                            <span class="text-white font-medium text-right" id="rev-comms">Casual, Short, Frequent Emojis</span>
+                        </div>
+                        <div class="flex justify-between pb-2">
+                            <span class="text-gray-500 text-sm">Expertise</span>
+                            <span class="text-blue-400 font-medium text-right" id="rev-expert">Programming, Gaming</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="mt-auto pt-6 flex justify-between border-t border-gray-700 relative z-10 bg-gray-800/60">
+                    <button type="button" id="m-back-btn" class="px-6 py-2 rounded-xl text-gray-400 hover:text-white transition invisible">Back</button>
+                    <button type="button" id="m-next-btn" class="px-8 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl text-white font-medium shadow-lg transition">Next Step</button>
+                    <button type="button" id="m-create-btn" class="hidden px-8 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-white font-medium shadow-lg transition">Deploy Persona</button>
+                </div>
+                <div id="m-error-msg" class="mt-3 text-red-400 text-xs font-semibold text-center opacity-0 transition-opacity">Please fill all required fields.</div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="/static/js/chat.js"></script>
+    <script>
+        async function logout() {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

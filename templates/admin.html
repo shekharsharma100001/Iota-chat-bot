@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iota - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        panelBg: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darkBg text-white min-h-screen">
+
+    <nav class="bg-panelBg border-b border-gray-800 p-4 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-orange-400">Iota Admin</h1>
+            <div class="flex items-center gap-4">
+                <a href="/chat/" class="text-gray-400 hover:text-white transition">Back to App</a>
+                <a href="/admin/logout" class="text-red-400 hover:text-red-300 transition">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-8 mt-6">
+        <div class="bg-panelBg rounded-2xl shadow-xl border border-gray-800 overflow-hidden">
+            <div class="p-6 border-b border-gray-800">
+                <h2 class="text-xl font-semibold">User Governance</h2>
+                <p class="text-gray-400 text-sm mt-1">Manage users, their chat history, and active vector namespaces.</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-800 text-gray-400 text-sm">
+                                <th class="pb-3 px-4 font-medium">User ID</th>
+                                <th class="pb-3 px-4 font-medium">Username</th>
+                                <th class="pb-3 px-4 font-medium">Email</th>
+                                <th class="pb-3 px-4 text-right font-medium">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-list">
+                            <!-- Users will be injected here via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function fetchUsers() {
+            try {
+                const res = await fetch('/admin/users');
+                if(!res.ok) throw new Error("Failed to fetch users");
+                const users = await res.json();
+                
+                const tbody = document.getElementById('user-list');
+                tbody.innerHTML = '';
+                
+                users.forEach(u => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-gray-800/50 hover:bg-gray-800/20 transition";
+                    tr.innerHTML = `
+                        <td class="py-4 px-4 text-sm font-mono text-gray-400">${u.id}</td>
+                        <td class="py-4 px-4 font-medium">${u.username}</td>
+                        <td class="py-4 px-4 text-gray-300">${u.email}</td>
+                        <td class="py-4 px-4 text-right">
+                            <button onclick="deleteUser('${u.id}')" class="px-3 py-1.5 bg-red-900/30 text-red-400 border border-red-800/50 hover:bg-red-900/50 rounded-lg text-sm transition font-medium">Purge Vector & Data</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function deleteUser(id) {
+            if(!confirm("Are you sure? This will delete the user from MongoDB and PURGE their Pinecone Namespace. This action is irreversible.")) return;
+            
+            try {
+                const res = await fetch(`/admin/users/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                alert(data.message || data.error || data.warning);
+                fetchUsers();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to delete user.");
+            }
+        }
+
+        // Initialize
+        fetchUsers();
+    </script>
+</body>
+</html>

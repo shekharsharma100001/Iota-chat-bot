@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iota - Authentication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        darkBg: '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-white min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-black">
+
+    <div class="glass p-10 rounded-2xl shadow-2xl w-full max-w-md transition-all duration-300">
+        <h1 class="text-4xl font-bold mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Iota</h1>
+        <p class="text-gray-400 text-center mb-8">Access your AI Clone Workspace</p>
+
+        <form id="auth-form" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-gray-300">Email Address</label>
+                <input type="email" id="email" class="mt-1 block w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow" required>
+            </div>
+            <div id="username-container" class="hidden">
+                <label class="block text-sm font-medium text-gray-300">Username</label>
+                <input type="text" id="username" class="mt-1 block w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300">Password</label>
+                <div class="relative mt-1">
+                    <input type="password" id="password" class="block w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow pr-12" required>
+                    <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 toggle-password text-gray-400 hover:text-white" data-target="password">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="confirm-password-container" class="hidden">
+                <label class="block text-sm font-medium text-gray-300">Confirm Password</label>
+                <div class="relative mt-1">
+                    <input type="password" id="confirm-password" class="block w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow pr-12">
+                    <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 toggle-password text-gray-400 hover:text-white" data-target="confirm-password">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+                <p id="password-error" class="text-red-500 text-xs mt-1 hidden">Passwords do not match</p>
+            </div>
+
+            <div id="forgot-password-container" class="flex items-center justify-between mt-2">
+                <a href="/auth/forgot-password" class="text-sm text-blue-400 hover:text-blue-300 transition-colors">Forgot Password?</a>
+            </div>
+
+            <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl shadow-lg transform transition hover:scale-[1.02]">
+                <span id="btn-text">Sign In</span>
+            </button>
+            
+            <div class="relative flex items-center py-2">
+                <div class="flex-grow border-t border-gray-700"></div>
+                <span class="flex-shrink-0 mx-4 text-gray-500 text-sm">Or</span>
+                <div class="flex-grow border-t border-gray-700"></div>
+            </div>
+
+            <a href="/auth/login/google" class="w-full flex items-center justify-center py-3 px-4 bg-white hover:bg-gray-100 text-gray-800 font-bold rounded-xl shadow-lg transform transition hover:scale-[1.02] gap-2">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continue with Google
+            </a>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-gray-400">
+            <span id="toggle-text">Don't have an account?</span> 
+            <button id="toggle-mode" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Register</button>
+        </p>
+    </div>
+
+    <script>
+        let isLogin = true;
+        const form = document.getElementById('auth-form');
+        const toggleBtn = document.getElementById('toggle-mode');
+        const usernameContainer = document.getElementById('username-container');
+        const usernameInput = document.getElementById('username');
+        const btnText = document.getElementById('btn-text');
+        const toggleText = document.getElementById('toggle-text');
+        const forgotPasswordContainer = document.getElementById('forgot-password-container');
+        const confirmPasswordContainer = document.getElementById('confirm-password-container');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+
+        toggleBtn.addEventListener('click', () => {
+            isLogin = !isLogin;
+            if(isLogin) {
+                usernameContainer.classList.add('hidden');
+                confirmPasswordContainer.classList.add('hidden');
+                forgotPasswordContainer.classList.remove('hidden');
+                usernameInput.required = false;
+                confirmPasswordInput.required = false;
+                btnText.innerText = 'Sign In';
+                toggleText.innerText = "Don't have an account?";
+                toggleBtn.innerText = 'Register';
+            } else {
+                usernameContainer.classList.remove('hidden');
+                confirmPasswordContainer.classList.remove('hidden');
+                forgotPasswordContainer.classList.add('hidden');
+                usernameInput.required = true;
+                confirmPasswordInput.required = true;
+                btnText.innerText = 'Create Account';
+                toggleText.innerText = 'Already have an account?';
+                toggleBtn.innerText = 'Sign In';
+            }
+        });
+
+        // Toggle password visibility
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                const svg = this.querySelector('svg');
+                
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />';
+                } else {
+                    input.type = 'password';
+                    svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+                }
+            });
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const passwordError = document.getElementById('password-error');
+            
+            passwordError.classList.add('hidden');
+
+            if (!isLogin && password !== confirmPassword) {
+                passwordError.classList.remove('hidden');
+                return;
+            }
+
+            const endpoint = isLogin ? '/auth/login' : '/auth/register';
+            const payload = isLogin ? {email, password} : {username, email, password};
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if(res.ok) {
+                    window.location.href = '/chat/';
+                } else {
+                    alert(data.error || 'Authentication failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred.');
+            }
+        });
+    </script>
+</body>
+</html>
